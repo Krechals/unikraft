@@ -55,6 +55,10 @@ void system_off(void)
 	 * harmless if we're not running on QEMU, especially considering we're
 	 * already shutting down, so who cares if we crash.
 	 */
+#if KVMFCPLAT
+	outb(0x64, 0xFE);
+#endif
+
 	outw(0x604, 0x2000);
 
 	/*
