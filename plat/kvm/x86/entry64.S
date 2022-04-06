@@ -27,6 +27,7 @@
  * SUCH DAMAGE.
  */
 
+#include <uk/config.h>
 #include <x86/cpu_defs.h>
 #include <kvm-x86/traps.h>
 #include <kvm-x86/multiboot_defs.h>
@@ -40,6 +41,7 @@
 #define MYMULTIBOOT_FLAGS \
     (MULTIBOOT_PAGE_ALIGN | MULTIBOOT_MEMORY_INFO | MULTIBOOT_AOUT_KLUDGE)
 
+#if KVMQPLAT
 .section .data.boot
 
 .align 4
@@ -53,11 +55,13 @@ _multiboot_header:
 .long _end                                        /* bss end addr */
 .long _libkvmplat_start32                         /* entry addr */
 
+#endif
 .section .bss
 
 .space 4096
 bootstack:
 
+#if KVMQPLAT
 /*
  * Bootloader entry point.
  *
@@ -94,28 +98,18 @@ ENTRY(_libkvmplat_start32)
 	orl $X86_EFER_NXE, %eax
 	wrmsr
 
-	/* 3: load pml4 pointer */
-	movl $x86_bpt_pml4, %eax
-	movl %eax, %cr3
-
-	/* 4: enable paging */
-	movl %cr0, %eax
-	orl $X86_CR0_PG, %eax
-	movl %eax, %cr0
-
 	jmp _libkvmplat_start64
 
 	/* NOTREACHED */
 	jmp haltme
 
 nomultiboot:
-
 haltme:
 	cli
 	hlt
 	jmp haltme
 END(_libkvmplat_start32)
-
+#endif
 /*
  * amd64 programmer's manual:
  *
@@ -147,12 +141,21 @@ mxcsr_ptr:
 	.long 0x1f80			/* Intel SDM power-on default */
 
 
-#include "pagetable64.S"
+#include "pagetable.S"
 
 .code64
 .section .text.boot
 
 ENTRY(_libkvmplat_start64)
+	/* load pml4 pointer */
+        movq $cpu_pml4, %rax
+        movq %rax, %cr3
+
+        /* enable paging */
+        movq %cr0, %rax
+        orl $X86_CR0_PG, %eax
+        movq %rax, %cr0
+
 	/* set up the boot stack */
 	movq $bootstack, %rsp
 	xorq %rbp, %rbp
