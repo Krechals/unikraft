@@ -26,7 +26,7 @@
 #include <uk/arch/limits.h> /* for __PAGE_SIZE */
 #include <uk/plat/common/common.lds.h>
 
-ENTRY(_libkvmplat_entry)
+ENTRY(_libkvmplat_start64)
 SECTIONS
 {
 	. = 0x100000;
