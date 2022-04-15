@@ -143,7 +143,7 @@ mxcsr_ptr:
 	.long 0x1f80			/* Intel SDM power-on default */
 
 
-#include "pagetable64.S"
+#include "pagetable.S"
 
 .code64
 .section .text.boot
