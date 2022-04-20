@@ -53,11 +53,6 @@
 #define MAX_CMDLINE_SIZE 8192
 static char cmdline[MAX_CMDLINE_SIZE];
 
-struct kvmplat_config _libkvmplat_cfg = { 0 };
-
-extern void _libkvmplat_newstack(uintptr_t stack_start, void (*tramp)(void *),
-				 void *arg);
-
 static inline void _mb_get_cmdline(struct multiboot_info *mi)
 {
 	char *mi_cmdline;
