@@ -22,6 +22,7 @@ endif
 $(eval $(call addplatlib,kvmq,libkvmqplat,$(CONFIG_KVM_VMM_QEMU)))
 $(eval $(call addplatlib,kvmfc,libkvmfcplat,$(CONFIG_KVM_VMM_FIRECRACKER)))
 $(eval $(call addplatlib_s,kvmq,libkvmpci,$(CONFIG_KVM_PCI)))
+$(eval $(call addplatlib_s,kvmq,libkvmpf,$(CONFIG_KVM_PF)))
 $(eval $(call addplatlib_s,kvmq,libkvmvirtio,$(CONFIG_VIRTIO_BUS)))
 $(eval $(call addplatlib_s,kvmq,libkvmvirtionet,$(CONFIG_VIRTIO_NET)))
 $(eval $(call addplatlib_s,kvmq,libkvmvirtioblk,$(CONFIG_VIRTIO_BLK)))
@@ -29,6 +30,7 @@ $(eval $(call addplatlib_s,kvmq,libkvmvirtio9p,$(CONFIG_VIRTIO_9P)))
 $(eval $(call addplatlib_s,kvmq,libkvmofw,$(CONFIG_LIBOFW)))
 $(eval $(call addplatlib_s,kvmq,libkvmgicv2,$(CONFIG_LIBGICV2)))
 $(eval $(call addplatlib_s,kvmq,libkvmgic,$(CONFIG_LIBGIC)))
+$(eval $(call addplatlib_s,kvmfc,libkvmpf,$(CONFIG_KVM_PF)))
 $(eval $(call addplatlib_s,kvmfc,libkvmvirtio,$(CONFIG_VIRTIO_BUS)))
 $(eval $(call addplatlib_s,kvmfc,libkvmvirtionet,$(CONFIG_VIRTIO_NET)))
 
@@ -48,10 +50,22 @@ LIBKVMPLAT_CXXFLAGS            += -DKVMPLAT
 ##
 ## Default Linker script
 ifeq ($(CONFIG_ARCH_X86_64),y)
-UK_PLAT_KVM_DEF_LDS            := $(CONFIG_UK_BASE)/plat/kvm/x86/link64.lds.S
+
+ifeq ($(CONFIG_KVM_VMM_QEMU),y)
+UK_PLAT_KVMQ_DEF_LDS		 := $(CONFIG_UK_BASE)/plat/kvm/x86/link64.lds.S
+else ifeq ($(CONFIG_KVM_VMM_FIRECRACKER),y)
+UK_PLAT_KVMFC_DEF_LDS            := $(CONFIG_UK_BASE)/plat/kvm/x86/link64.lds.S
+endif
+
 else
 ifeq ($(CONFIG_ARCH_ARM_64),y)
-UK_PLAT_KVM_DEF_LDS            := $(CONFIG_UK_BASE)/plat/kvm/arm/link64.lds.S
+
+ifeq ($(CONFIG_KVM_VMM_QEMU),y) 
+UK_PLAT_KVMQ_DEF_LDS             := $(CONFIG_UK_BASE)/plat/kvm/arm/link64.lds.S
+else ifeq ($(CONFIG_KVM_VMM_FIRECRACKER),y)
+UK_PLAT_KVMFC_DEF_LDS            := $(CONFIG_UK_BASE)/plat/kvm/arm/link64.lds.S
+endif
+
 endif
 endif
 
@@ -128,7 +142,11 @@ LIBKVMPLAT_SRCS-y              += $(LIBKVMPLAT_BASE)/irq.c
 LIBKVMPLAT_SRCS-y              += $(LIBKVMPLAT_BASE)/io.c
 LIBKVMPLAT_SRCS-y              += $(UK_PLAT_COMMON_BASE)/lcpu.c|common
 LIBKVMPLAT_SRCS-y              += $(UK_PLAT_COMMON_BASE)/memory.c|common
-LIBKVMPLAT_SRCS-y              += $(UK_PLAT_KVM_DEF_LDS)
+ifeq ($(CONFIG_KVM_VMM_QEMU),y)
+LIBKVMPLAT_SRCS-y              += $(UK_PLAT_KVMQ_DEF_LDS)
+else ifeq ($(CONFIG_KVM_VMM_FIRECRACKER),y)
+LIBKVMPLAT_SRCS-y              += $(UK_PLAT_KVMFC_DEF_LDS)
+endif
 
 ifeq ($(CONFIG_KVM_VMM_QEMU),y)
 LIBKVMQPLAT_SRCS-y        := $(LIBKVMPLAT_SRCS-y)
@@ -166,11 +184,11 @@ LIBKVMPCI_SRCS-$(CONFIG_ARCH_ARM_64) += \
 ##
 ## Platform bus library definitions
 ##
-LIBKVMPF_ASINCLUDES-$(CONFIG_ARCH_ARM_64)  += -I$(UK_PLAT_COMMON_BASE)/include
-LIBKVMPF_CINCLUDES-$(CONFIG_ARCH_ARM_64)   += -I$(UK_PLAT_COMMON_BASE)/include
-LIBKVMPF_CINCLUDES-$(CONFIG_ARCH_ARM_64)   += -I$(LIBKVMPLAT_BASE)/include
-LIBKVMPF_CINCLUDES-$(CONFIG_ARCH_ARM_64)   += -I$(UK_PLAT_DRIVERS_BASE)/include
 LIBKVMPF_SRCS-$(CONFIG_KVM_PF) += $(UK_PLAT_COMMON_BASE)/platform_bus.c|common
+LIBKVMPF_ASINCLUDES-y  += -I$(UK_PLAT_COMMON_BASE)/include
+LIBKVMPF_CINCLUDES-y   += -I$(UK_PLAT_COMMON_BASE)/include
+LIBKVMPF_CINCLUDES-y   += -I$(LIBKVMPLAT_BASE)/include
+LIBKVMPF_CINCLUDES-y   += -I$(UK_PLAT_DRIVERS_BASE)/include
 
 ##
 ## Virtio library definitions
@@ -187,7 +205,7 @@ LIBKVMVIRTIO_SRCS-$(CONFIG_VIRTIO_BUS) +=\
 			$(UK_PLAT_DRIVERS_BASE)/virtio/virtio_ring.c
 LIBKVMVIRTIO_SRCS-$(CONFIG_VIRTIO_PCI) +=\
 			$(UK_PLAT_DRIVERS_BASE)/virtio/virtio_pci.c
-LIBKVMVIRTIO_SRCS-$(CONFIG_ARCH_ARM_64)	+=\
+LIBKVMVIRTIO_SRCS-$(CONFIG_KVM_PF)	+=\
 			$(UK_PLAT_DRIVERS_BASE)/virtio/virtio_mmio.c
 ##
 ## Virtio Net library definition
