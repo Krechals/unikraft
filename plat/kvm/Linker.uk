@@ -13,7 +13,7 @@ KVMFC_IMAGE := $(BUILD_DIR)/$(CONFIG_UK_NAME)_kvmfc-$(CONFIG_UK_ARCH)
 KVMFC_DEBUG_IMAGE := $(KVMFC_IMAGE).dbg
 
 KVMFC_LD_SCRIPT_FLAGS := $(addprefix -Wl$(comma)-dT$(comma),\
-                         $(UK_PLAT_KVM_DEF_LDS))
+                         $(UK_PLAT_KVMFC_DEF_LDS))
 KVMFC_LD_SCRIPT_FLAGS += $(addprefix -Wl$(comma)-T$(comma),\
                         $(KVMFC_LD_SCRIPT-y) $(EXTRA_LD_SCRIPT-y))
 
@@ -30,6 +30,7 @@ $(KVMFC_DEBUG_IMAGE): $(KVM_ALIBS) $(KVM_ALIBS-y) $(KVM_OLIBS) $(KVM_OLIBS-y) \
 			$(KVM_ALIBS) $(KVM_ALIBS-y) \
 			$(KVMFC_ALIBS) $(KVMFC_ALIBS-y) \
 			$(UK_ALIBS) $(UK_ALIBS-y) \
+			$(KVMFC_LINK_LIBGCC_FLAG) \
 			-Wl$(comma)--end-group \
 			-o $(KVMFC_IMAGE).ld.o)
 	$(call build_cmd,OBJCOPY,,$(KVMFC_IMAGE).o,\
@@ -74,6 +75,7 @@ ifeq (x86_64,$(CONFIG_UK_ARCH))
 KVMQ_LDFLAGS-y += -Wl,-m,elf_x86_64
 else ifeq (arm64,$(CONFIG_UK_ARCH))
 KVMQ_LDFLAGS-y   += -Wl,-m,aarch64elf
+KVMQ_LINK_LIBGCC_FLAG  := -lgcc
 endif
 
 ##
@@ -83,15 +85,15 @@ KVMQ_IMAGE := $(BUILD_DIR)/$(CONFIG_UK_NAME)_kvmq-$(CONFIG_UK_ARCH)
 KVMQ_DEBUG_IMAGE := $(KVMQ_IMAGE).dbg
 
 KVMQ_LD_SCRIPT_FLAGS := $(addprefix -Wl$(comma)-dT$(comma),\
-			 $(UK_PLAT_KVM_DEF_LDS))
+			 $(UK_PLAT_KVMQ_DEF_LDS))
 KVMQ_LD_SCRIPT_FLAGS += $(addprefix -Wl$(comma)-T$(comma),\
 			$(KVMQ_LD_SCRIPT-y) $(EXTRA_LD_SCRIPT-y))
 
 $(KVMQ_DEBUG_IMAGE): $(KVM_ALIBS) $(KVM_ALIBS-y) $(KVM_OLIBS) $(KVM_OLIBS-y) \
-                    $(KVMQ_ALIBS) $(KVMQ_ALIBS-y) $(KVMQ_OLIBS) $(KVMQ_OLIBS-y) \
-		    $(UK_ALIBS) $(UK_ALIBS-y) $(UK_OLIBS) $(UK_OLIBS-y)
+			$(KVMQ_ALIBS) $(KVMQ_ALIBS-y) $(KVMQ_OLIBS) $(KVMQ_OLIBS-y) \
+			$(UK_ALIBS) $(UK_ALIBS-y) $(UK_OLIBS) $(UK_OLIBS-y)
 	$(call build_cmd,LD,,$(KVMQ_IMAGE).ld.o,\
-	       $(LD) -r $(LIBLDFLAGS) $(LIBLDFLAGS-y) \
+		$(LD) -r $(LIBLDFLAGS) $(LIBLDFLAGS-y) \
 			$(KVMQ_LDFLAGS) $(KVMQ_LDFLAGS-y) \
 			$(KVM_OLIBS) $(KVM_OLIBS-y) \
 			$(KVMQ_OLIBS) $(KVMQ_OLIBS-y) \
@@ -100,7 +102,7 @@ $(KVMQ_DEBUG_IMAGE): $(KVM_ALIBS) $(KVM_ALIBS-y) $(KVM_OLIBS) $(KVM_OLIBS-y) \
 			$(KVM_ALIBS) $(KVM_ALIBS-y) \
 			$(KVMQ_ALIBS) $(KVMQ_ALIBS-y) \
 			$(UK_ALIBS) $(UK_ALIBS-y) \
-			$(KVMFC_LINK_LIBGCC_FLAG) \
+			$(KVMQ_LINK_LIBGCC_FLAG) \
 			-Wl$(comma)--end-group \
 			-o $(KVMQ_IMAGE).ld.o)
 	$(call build_cmd,OBJCOPY,,$(KVMQ_IMAGE).o,\
