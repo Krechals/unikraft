@@ -876,6 +876,7 @@ static int virtio_netdev_feature_negotiate(struct uk_netdev *n)
 	 * accepting it.
 	 */
 	host_features = virtio_feature_get(vndev->vdev);
+	uk_pr_info("host_features: %p\n", host_features);
 
 	/**
 	 * Hardware address
@@ -897,19 +898,20 @@ static int virtio_netdev_feature_negotiate(struct uk_netdev *n)
 
 	/**
 	 * MTU information (needed)
-	 */
+	 *
 	if (!VIRTIO_FEATURE_HAS(host_features, VIRTIO_NET_F_STATUS)) {
 		uk_pr_err("%p: Host system does not offer MTU feature\n", n);
 		rc = -EINVAL;
 		goto err_negotiate_feature;
 	}
 	VIRTIO_FEATURE_SET(drv_features, VIRTIO_NET_F_STATUS);
+	*/	
 
 	/**
 	 * Gratuitous ARP
 	 * NOTE: We tell that we will do gratuitous ARPs ourselves.
 	 */
-	VIRTIO_FEATURE_SET(drv_features, VIRTIO_NET_F_GUEST_ANNOUNCE);
+	// VIRTIO_FEATURE_SET(drv_features, VIRTIO_NET_F_GUEST_ANNOUNCE);
 
 	/**
 	 * Partial checksumming
@@ -927,7 +929,14 @@ static int virtio_netdev_feature_negotiate(struct uk_netdev *n)
 	/**
 	 * Announce our enabled driver features back to the backend device
 	 */
+	if (VIRTIO_FEATURE_HAS(host_features, VIRTIO_F_VERSION_1)) {
+ 		 VIRTIO_FEATURE_SET(drv_features, VIRTIO_F_VERSION_1);
+	}	
+
+	uk_pr_info("drv_features: %p\n", drv_features);
+	
 	vndev->vdev->features = drv_features;
+	
 	virtio_feature_set(vndev->vdev, vndev->vdev->features);
 
 	/**
@@ -942,6 +951,8 @@ static int virtio_netdev_feature_negotiate(struct uk_netdev *n)
 				   &vndev->hw_addr.addr_bytes[0],
 				   UK_NETDEV_HWADDR_LEN, 1);
 
+	virtio_dev_status_update(vndev->vdev, (VIRTIO_CONFIG_STATUS_ACK | VIRTIO_CONFIG_STATUS_DRIVER | VIRTIO_CONFIG_STATUS_FEATURES_OK));
+	
 	return 0;
 
 err_negotiate_feature:

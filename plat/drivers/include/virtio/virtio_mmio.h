@@ -68,7 +68,7 @@
 #define VIRTIO_MMIO_DRIVER_FEATURES_SEL	0x024
 
 
-#ifndef VIRTIO_MMIO_NO_LEGACY /* LEGACY DEVICES ONLY! */
+#ifdef VIRTIO_MMIO_LEGACY /* LEGACY DEVICES ONLY! */
 
 /* Guest's memory page size in bytes - Write Only */
 #define VIRTIO_MMIO_GUEST_PAGE_SIZE	0x028
@@ -86,7 +86,7 @@
 #define VIRTIO_MMIO_QUEUE_NUM		0x038
 
 
-#ifndef VIRTIO_MMIO_NO_LEGACY /* LEGACY DEVICES ONLY! */
+#ifndef VIRTIO_MMIO_LEGACY /* LEGACY DEVICES ONLY! */
 
 /* Used Ring alignment for the currently selected queue - Write Only */
 #define VIRTIO_MMIO_QUEUE_ALIGN		0x03c
