@@ -613,6 +613,7 @@ int uk_libparam_parse(const char *progname, int argc, char **argv)
 		/* Fetch the argument from the input */
 		rc = kernel_arg_fetch(&argv[cnt], (keindex - cnt),
 				      &pargs, &args_read);
+		
 		if (rc < 0) {
 			uk_pr_err("Failed to fetch arg between index %d and %d\n",
 				  cnt, (cnt + args_read));
@@ -623,11 +624,12 @@ int uk_libparam_parse(const char *progname, int argc, char **argv)
 			cnt += args_read;
 			continue;
 		}
-		uk_pr_debug("Processing argument %s\n", pargs.param);
+		uk_pr_info("Processing argument %s\n", pargs.param);
 		cnt += args_read;
 
 		/* Fetch library for the argument */
 		rc = kernel_lib_fetch(&pargs, &section);
+		
 		if (rc < 0 || !section) {
 			uk_pr_err("Failed to identify the library\n");
 			continue;
