@@ -110,9 +110,123 @@ static inline void _bp_init_mem(struct boot_params *bp)
         _libkvmplat_cfg.bstack.len   = __STACK_SIZE;
 }
 
-static inline void _bp_init_initrd(struct boot_params *bp __unused)
+static inline void _bp_init_initrd(struct boot_params *bp)
 {
-        /* Firecracker does not have initrd support yet. */
+	uintptr_t heap0_start, heap0_end;
+	uintptr_t heap1_start, heap1_end;
+	size_t    heap0_len,   heap1_len;
+
+	if (bp->hdr.ramdisk_size == 0 || !bp->hdr.ramdisk_image) {
+		uk_pr_debug("No initrd present or initrd is empty\n");
+		goto no_initrd;
+	}
+
+	_libkvmplat_cfg.initrd.start = (uintptr_t) bp->hdr.ramdisk_image;
+	_libkvmplat_cfg.initrd.len = (size_t) bp->hdr.ramdisk_size;
+	_libkvmplat_cfg.initrd.end = _libkvmplat_cfg.initrd.start
+		+ _libkvmplat_cfg.initrd.len;
+
+	/*
+	 * Check if initrd is part of heap
+	 * In such a case, we figure out the remaining pieces as heap
+	 */
+	if (_libkvmplat_cfg.heap.len == 0) {
+		/* We do not have a heap */
+		goto out;
+	}
+	heap0_start = 0;
+	heap0_end   = 0;
+	heap1_start = 0;
+	heap1_end   = 0;
+	if (RANGE_OVERLAP(_libkvmplat_cfg.heap.start,
+			  _libkvmplat_cfg.heap.len,
+			  _libkvmplat_cfg.initrd.start,
+			  _libkvmplat_cfg.initrd.len)) {
+		if (IN_RANGE(_libkvmplat_cfg.initrd.start,
+			     _libkvmplat_cfg.heap.start,
+			     _libkvmplat_cfg.heap.len)) {
+			/* Start of initrd within heap range;
+			 * Use the prepending left piece as heap */
+			heap0_start = _libkvmplat_cfg.heap.start;
+			heap0_end   = ALIGN_DOWN(_libkvmplat_cfg.initrd.start,
+						 __PAGE_SIZE);
+		}
+		if (IN_RANGE(_libkvmplat_cfg.initrd.start,
+
+			     _libkvmplat_cfg.heap.start,
+			     _libkvmplat_cfg.heap.len)) {
+			/* End of initrd within heap range;
+			 * Use the remaining left piece as heap */
+			heap1_start = ALIGN_UP(_libkvmplat_cfg.initrd.end,
+					       __PAGE_SIZE);
+			heap1_end   = _libkvmplat_cfg.heap.end;
+		}
+	} else {
+		/* Initrd is not overlapping with heap */
+		heap0_start = _libkvmplat_cfg.heap.start;
+		heap0_end   = _libkvmplat_cfg.heap.end;
+	}
+	heap0_len = heap0_end - heap0_start;
+	heap1_len = heap1_end - heap1_start;
+
+	/*
+	 * Update heap regions
+	 * We make sure that in we start filling left heap pieces at
+	 * `_libkvmplat_cfg.heap`. Any additional piece will then be
+	 * placed to `_libkvmplat_cfg.heap2`.
+	 */
+	if (heap0_len == 0) {
+		/* Heap piece 0 is empty, use piece 1 as only */
+		if (heap1_len != 0) {
+			_libkvmplat_cfg.heap.start = heap1_start;
+			_libkvmplat_cfg.heap.end   = heap1_end;
+			_libkvmplat_cfg.heap.len   = heap1_len;
+		} else {
+			_libkvmplat_cfg.heap.start = 0;
+			_libkvmplat_cfg.heap.end   = 0;
+			_libkvmplat_cfg.heap.len   = 0;
+		}
+		 _libkvmplat_cfg.heap2.start = 0;
+		 _libkvmplat_cfg.heap2.end   = 0;
+		 _libkvmplat_cfg.heap2.len   = 0;
+	} else {
+		/* Heap piece 0 has memory */
+		_libkvmplat_cfg.heap.start = heap0_start;
+		_libkvmplat_cfg.heap.end   = heap0_end;
+		_libkvmplat_cfg.heap.len   = heap0_len;
+		if (heap1_len != 0) {
+			_libkvmplat_cfg.heap2.start = heap1_start;
+			_libkvmplat_cfg.heap2.end   = heap1_end;
+			_libkvmplat_cfg.heap2.len   = heap1_len;
+		} else {
+			_libkvmplat_cfg.heap2.start = 0;
+			_libkvmplat_cfg.heap2.end   = 0;
+			_libkvmplat_cfg.heap2.len   = 0;
+		}
+	}
+
+	/*
+	 * Double-check that initrd is not overlapping with previously allocated
+	 * boot stack. We crash in such a case because we assume that multiboot
+	 * places the initrd close to the beginning of the heap region. One need
+	 * to assign just more memory in order to avoid this crash.
+	 */
+	if (RANGE_OVERLAP(_libkvmplat_cfg.heap.start,
+			  _libkvmplat_cfg.heap.len,
+			  _libkvmplat_cfg.initrd.start,
+			  _libkvmplat_cfg.initrd.len))
+		UK_CRASH("Not enough space at end of memory for boot stack\n");
+out:
+	return;
+
+no_initrd:
+	_libkvmplat_cfg.initrd.start = 0;
+	_libkvmplat_cfg.initrd.end   = 0;
+	_libkvmplat_cfg.initrd.len   = 0;
+	_libkvmplat_cfg.heap2.start  = 0;
+	_libkvmplat_cfg.heap2.end    = 0;
+	_libkvmplat_cfg.heap2.len    = 0;
+	return;
 }
 
 static inline void process_vmminfo(void *arg __unused)
