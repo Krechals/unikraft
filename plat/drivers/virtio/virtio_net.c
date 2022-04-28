@@ -40,6 +40,7 @@
 #include <virtio/virtio_bus.h>
 #include <virtio/virtqueue.h>
 #include <virtio/virtio_net.h>
+#include <uk/hexdump.h>
 
 /**
  * VIRTIO_PKT_BUFFER_LEN = VIRTIO_NET_HDR + ETH_HDR + ETH_PKT_PAYLOAD_LEN
@@ -357,7 +358,7 @@ static int virtio_netdev_xmit(struct uk_netdev *dev,
 	/**
 	 * Use the preallocated header space for the virtio header.
 	 */
-	rc = uk_netbuf_header(pkt, header_sz);
+	rc = uk_netbuf_header(pkt, VIRTIO_HDR_LEN);
 	if (unlikely(rc != 1)) {
 		uk_pr_err("Failed to prepend virtio header\n");
 		rc = -ENOSPC;
@@ -378,7 +379,7 @@ static int virtio_netdev_xmit(struct uk_netdev *dev,
 	 *       to `uk_sglist_append_netbuf()`. However, a netbuf
 	 *       chain can only once have set the PARTIAL_CSUM flag.
 	 */
-	memset(vhdr, 0, sizeof(*vhdr));
+	memset(vhdr, 0, VIRTIO_HDR_LEN);
 	if (pkt->flags & UK_NETBUF_F_PARTIAL_CSUM) {
 		vhdr->flags       |= VIRTIO_NET_HDR_F_NEEDS_CSUM;
 		/* `csum_start` is without header size */
@@ -400,11 +401,14 @@ static int virtio_netdev_xmit(struct uk_netdev *dev,
 	 * 1 for the virtio header and the other for the actual network packet.
 	 */
 	/* Appending the data to the list. */
-	rc = uk_sglist_append(&queue->sg, vhdr, sizeof(*vhdr));
+
+	uk_hexdumpCd(vhdr, VIRTIO_HDR_LEN);
+	rc = uk_sglist_append(&queue->sg, vhdr, VIRTIO_HDR_LEN);
 	if (unlikely(rc != 0)) {
 		uk_pr_err("Failed to append to the sg list\n");
 		goto err_remove_vhdr;
 	}
+	uk_hexdumpCd(buf_start, buf_len);
 	rc = uk_sglist_append(&queue->sg, buf_start, buf_len);
 	if (unlikely(rc != 0)) {
 		uk_pr_err("Failed to append to the sg list\n");
@@ -486,7 +490,7 @@ static int virtio_netdev_rxq_enqueue(struct uk_netdev_rx_queue *rxq,
 	/**
 	 * Retrieve the buffer header length.
 	 */
-	rc = uk_netbuf_header(netbuf, header_sz);
+	rc = uk_netbuf_header(netbuf, VIRTIO_HDR_LEN);
 	if (unlikely(rc != 1)) {
 		uk_pr_err("Failed to allocate space to prepend virtio header\n");
 		return -EINVAL;
@@ -497,7 +501,7 @@ static int virtio_netdev_rxq_enqueue(struct uk_netdev_rx_queue *rxq,
 	uk_sglist_reset(sg);
 
 	/* Appending the header buffer to the sglist */
-	uk_sglist_append(sg, rxhdr, sizeof(struct virtio_net_hdr));
+	uk_sglist_append(sg, rxhdr, VIRTIO_HDR_LEN);
 
 	/* Appending the data buffer to the sglist */
 	uk_sglist_append(sg, buf_start, buf_len);
@@ -553,7 +557,7 @@ static int virtio_netdev_rxq_dequeue(struct uk_netdev_rx_queue *rxq,
 	 */
 	buf->len = len + VTNET_RX_HEADER_PAD;
 	rc = uk_netbuf_header(buf,
-			      -((int16_t)sizeof(struct virtio_net_hdr_padded)));
+			      -VIRTIO_HDR_LEN);
 	UK_ASSERT(rc == 1);
 	*netbuf = buf;
 

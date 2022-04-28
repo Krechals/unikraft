@@ -368,7 +368,7 @@ static int virtio_pci_legacy_add_dev(struct pci_device *pci_dev,
 	if (pci_dev->id.device_id < 0x1000 || pci_dev->id.device_id > 0x103f) {
 		uk_pr_err("Invalid Virtio Devices %04x\n",
 			  pci_dev->id.device_id);
-		return -EINVAL;
+		// return -EINVAL;
 	}
 
 	vpci_dev->pci_isr_addr = vpci_dev->pci_base_addr + VIRTIO_PCI_ISR;
