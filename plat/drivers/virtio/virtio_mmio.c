@@ -258,10 +258,6 @@ static int vm_notify(struct virtio_dev *vdev, __u16 queue_id)
 	 * We write the queue's selector into the notification register to
 	 * signal the other end
 	 */
-	uk_pr_info("base: %p\n", vm_dev->base); 
-	uk_pr_info("VIRTIO_MMIO_QUEUE_NOTIFY: %p\n", VIRTIO_MMIO_QUEUE_NOTIFY); 
-	uk_pr_info("queue_id: %p\n", queue_id); 
-	// virtio_cwrite32(vm_dev->base, VIRTIO_MMIO_QUEUE_NOTIFY, queue_id);
 	virtio_mem_cwrite32(vm_dev->base, VIRTIO_MMIO_QUEUE_NOTIFY, queue_id);
 
 	return 1;
@@ -525,8 +521,6 @@ static int virtio_mmio_add_dev(struct pf_device *pfdev)
 #ifdef VIRTIO_MMIO_LEGACY /* LEGACY DEVICES ONLY! */
 	virtio_mem_cwrite32(vm_dev->base, VIRTIO_MMIO_GUEST_PAGE_SIZE, __PAGE_SIZE);
 #endif
-
-	// virtio_dev_status_update(&(vm_dev->vdev), (VIRTIO_CONFIG_STATUS_ACK | VIRTIO_CONFIG_STATUS_DRIVER));
 
 	rc = virtio_bus_register_device(&vm_dev->vdev);
 	if (rc != 0) {

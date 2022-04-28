@@ -471,7 +471,6 @@ static int virtio_netdev_rxq_enqueue(struct uk_netdev_rx_queue *rxq,
 {
 	int rc = 0;
 	struct virtio_net_hdr_padded *rxhdr;
-	int16_t header_sz = sizeof(*rxhdr);
 	__u8 *buf_start;
 	size_t buf_len = 0;
 	struct uk_sglist *sg;
@@ -880,7 +879,6 @@ static int virtio_netdev_feature_negotiate(struct uk_netdev *n)
 	 * accepting it.
 	 */
 	host_features = virtio_feature_get(vndev->vdev);
-	uk_pr_info("host_features: %p\n", host_features);
 
 	/**
 	 * Hardware address
@@ -937,8 +935,6 @@ static int virtio_netdev_feature_negotiate(struct uk_netdev *n)
  		 VIRTIO_FEATURE_SET(drv_features, VIRTIO_F_VERSION_1);
 	}	
 
-	uk_pr_info("drv_features: %p\n", drv_features);
-	
 	vndev->vdev->features = drv_features;
 	
 	virtio_feature_set(vndev->vdev, vndev->vdev->features);
