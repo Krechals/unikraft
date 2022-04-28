@@ -51,9 +51,6 @@
 #define PLATFORM_MAX_MEM_ADDR 0x40000000
 
 #define MAX_CMDLINE_SIZE 8192
-static char cmdline[MAX_CMDLINE_SIZE];
-
-struct kvmplat_config _libkvmplat_cfg = { 0 };
 
 extern void _libkvmplat_newstack(uintptr_t stack_start, void (*tramp)(void *),
 				 void *arg);
