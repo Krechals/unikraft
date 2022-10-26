@@ -52,6 +52,15 @@
 x86_start16_addr:
 	.quad	LOAD_ADDR16
 
+.section .bss
+.space 4096
+lcpu_bootstack:
+
+.section .rodata
+lcpu_boot_startup_args:
+	.quad	_libkvmplat_entry
+	.quad	lcpu_bootstack
+
 /* The following section has to be copied to LOAD_ADDR16 (4KiB max!) at runtime
  * as 16-bit real mode entry point
  */
@@ -219,6 +228,16 @@ END(lcpu_start32)
 .code64
 .section .text.boot.64
 ENTRY(lcpu_start64)
+	/* load pml4 pointer */
+    movq 	$cpu_pml4, %rax
+    movq 	%rax, %cr3
+	
+	/* enable paging */
+	movq %cr0, %rax
+    orl $X86_CR0_PG, %eax
+    movq %rax, %cr0
+
+	movl	$lcpu_boot_startup_args, %edi	/* startup args for boot CPU */
 	/* Save the startup args pointer */
 	movq	%rdi, %r8
 

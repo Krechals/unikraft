@@ -56,6 +56,7 @@
 
 #define MAX_CMDLINE_SIZE 8192
 static char cmdline[MAX_CMDLINE_SIZE];
+#include <kvm-x86/vmminfo.h>
 
 struct kvmplat_config _libkvmplat_cfg = { 0 };
 struct uk_bootinfo bootinfo = { 0 };
@@ -449,7 +450,6 @@ static void __noreturn _libkvmplat_entry2(void)
 
 void _libkvmplat_entry(struct lcpu *lcpu, void *arg)
 {
-	struct multiboot_info *mi = (struct multiboot_info *)arg;
 	int rc;
 
 	_libkvmplat_init_console();
@@ -464,19 +464,7 @@ void _libkvmplat_entry(struct lcpu *lcpu, void *arg)
 
 	_init_cpufeatures();
 	intctrl_init();
-
-	uk_pr_info("Entering from KVM (x86)...\n");
-	uk_pr_info("     multiboot: %p\n", mi);
-
-	_convert_mbinfo(mi);
-
-	/*
-	 * The multiboot structures may be anywhere in memory, so take a copy of
-	 * everything necessary before we initialise memory allocation.
-	 */
-	_get_cmdline(&bootinfo);
-	_init_mem(&bootinfo);
-	_init_initrd(&bootinfo);
+	process_vmminfo(arg);
 #ifdef CONFIG_PAGING
 	_init_paging(mi);
 #endif /* CONFIG_PAGING */

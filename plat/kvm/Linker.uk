@@ -32,7 +32,7 @@ $(KVM_DEBUG_IMAGE): $(KVM_ALIBS) $(KVM_ALIBS-y) $(KVM_OLIBS) $(KVM_OLIBS-y) \
 			-o $(KVM_IMAGE).ld.o)
 	$(call build_cmd,OBJCOPY,,$(KVM_IMAGE).o,\
 		$(OBJCOPY) -w -G kvmos_* -G _libkvmplat_entry \
-			$(KVM_IMAGE).ld.o $(KVM_IMAGE).o)
+			-G lcpu_start64 $(KVM_IMAGE).ld.o $(KVM_IMAGE).o)
 	$(call build_cmd,LD,,$@,\
 	       $(LD) $(LDFLAGS) $(LDFLAGS-y) \
 		     $(KVM_LDFLAGS) $(KVM_LDFLAGS-y) \
